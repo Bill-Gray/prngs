@@ -1,0 +1,91 @@
+   I've been reading quite a few pages on your site with great interest.
+I started out looking for a good hash function,  and ended up reading and
+enjoying a big chunk of what you'd posted.  I've a (small) correction,  a
+few comments, and a question.
+
+   (1) First,  the correction.  In
+
+http://www.azillionmonkeys.com/qed/sorttest.c
+
+   'insertSort' is actually a selection sort.  (Which might explain why you
+found that sorting small arrays with it didn't speed matters up.  Selectsort
+will do about n^2 / 2 comparisons and n swaps.  Insert sort will average
+n^2/4 of both... I can't say I've done careful comparisons,  but certainly
+the Received Wisdom is that the small-array sorting should be insert-sorted,
+not select-sorted.)
+
+   (2) I liked the 'Any Other Number' trick at
+
+http://www.azillionmonkeys.com/qed/poison.html
+
+   I was wondering if you had Cauchy's diagonal argument (the one that shows
+that real numbers are not a countable infinity) in mind when you wrote that?
+It seems to me as if you ought to give Cauchy at least some credit on the
+page.  I've always admired the elegance of that argument, but I think this
+is the first time I've actually seen "practical" use made of it.
+
+   (3) As mentioned,  I started looking at your site because I was looking
+for a hash algorithm,  and quickly found yours at
+
+http://www.azillionmonkeys.com/qed/hash.html
+
+   I also found a comment about collision problems with this hash at
+
+http://blog.clawpaws.net/post/2007/04/22/Good-Hash-Functions
+
+   and was able to confirm them by hashing all 638645 entries in
+'american-english-insane' and looking for collisions.  With good
+distribution,  one should find roughly (638645 * 638644 / 2^32) / 2,
+or about 48,  collisions.  I got 361,  and saw the sort of suspicious
+collisions that are mentioned at the above page.  The test code I used
+is at
+
+http://www.projectpluto.com/hashtest.c
+
+   ...with the output shown at
+
+http://www.projectpluto.com/hashtest.txt
+
+   In theory,  at least,  one slight problem with the hash is that
+lines such as
+
+hash += hash >> 1;
+
+   aren't injective.  If f(x) = x + (x >> 1),  then f(AAAAAAAB) = f(0) = 0,
+for example.  But I don't think those shift-and-add parts really degrade
+things badly (the number of possible hash values is no longer 2^32,  but
+it's still very close to that),  and indeed,  when I replaced them with
+shift-and-xor, things actually got worse:  I got 393 collisions.
+
+   However,  when I changed the 'main loop' to read...
+
+    for (;len > 0; len--) {
+        hash  += get16bits (data);
+        tmp    = (get16bits (data+2) << 11) ^ hash;
+        hash   = (hash << 16) ^ tmp;
+        data  += 2*sizeof (uint16_t);
+        hash  ^= hash >> 11;           /* changed '+' to '^' */
+        hash  ^= hash << 3;            /* NEW LINE */
+    }
+
+   ...(basically just added another shift-and-xor),  I got 47 collisions.
+
+   This is encouraging,  but I could believe that for some other sort of
+input,  it might fail (say,  hashing 32-bit or 64-bit integers that are
+mostly low numbers,  or hashing floating-point numbers,  or if the text is
+all uppercase or lowercase).  I have no theoretical justification for the
+change I made,  just the empirical one that it provides better results in
+'hashtest'.  (We probably need something analogous to the "Die-Hard"
+empirical tests that are applied to pseudo-random number generators.)
+
+   I decided to add some code to test the effect of flipping individual
+bits in the input.  As you note,  that ought to flip (on average) half
+the output bits,  and it looks to me as if both the original and modified
+versions of your hash will do that.
+
+   But all this,  plus the fact that I've started working on a 64-bit
+version of the hash,  causes me to ask:  how did you come up with the
+shift amounts used in SuperFashHash?  Is there a theoretical basis,  or
+did you simply try various shift amounts to see what worked?
+
+Thanks!          -- Bill

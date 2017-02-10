@@ -1,0 +1,348 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <assert.h>
+#include <sys/resource.h>
+#include <time.h>
+
+#define uint128_t __uint128_t
+#define LATIN_SQUARE struct latin_square
+#define MAX_SIZE 32
+#define ls_mask uint32_t
+
+LATIN_SQUARE
+   {
+   unsigned size;
+   ls_mask xmask[MAX_SIZE];
+   ls_mask ymask[MAX_SIZE];
+   uint8_t soln[MAX_SIZE][MAX_SIZE];
+   };
+
+void init_grid( LATIN_SQUARE *ls, const unsigned size)
+{
+   unsigned i, j;
+   ls_mask full_mask = ((ls_mask)1 << size) - (ls_mask)1;
+
+         /* The '<<' operation apparently _rotates_ the bit back to 1 */
+         /* if size == 32 (if ls_mask is uint32_t),  or size == 64    */
+         /* (if ls_mask is uint64_t).  Which results in full_mask == 0, */
+         /* instead of full_mask == all bits set.  This fixes it:       */
+   if( !full_mask)
+      full_mask = (ls_mask)-1;
+   ls->size = size;
+   for( i = 0; i < size; i++)
+      {
+      ls->xmask[i] = ls->ymask[i] = full_mask;
+      for( j = 0; j < size; j++)
+         ls->soln[i][j] = 0;
+      }
+}
+
+static unsigned count_bits( ls_mask ival)
+{
+   unsigned rval = 0;
+
+   while( ival)
+      {
+      rval++;
+      ival &= (ival - 1);
+      }
+   return( rval);
+}
+
+static void show_grid( const LATIN_SQUARE *ls, const bool show_mask)
+{
+   unsigned x, y;
+
+   printf( "\n");
+   for( y = 0; y < ls->size; y++)
+      {
+      for( x = 0; x < ls->size; x++)
+         printf( (ls->size > 9 ? "%3u" : "%2u"), ls->soln[x][y]);
+      if( show_mask)
+         for( x = 0; x < ls->size; x++)
+            printf( " %04x", (unsigned)(ls->xmask[x] | ls->ymask[y]));
+      printf( "\n");
+      }
+}
+
+static int look_for_single_candidates( LATIN_SQUARE *ls,
+         unsigned *xloc, unsigned *yloc)
+{
+   unsigned x, y;
+   const ls_mask all_bits = ((ls_mask)1 << ls->size) - (ls_mask)1;
+
+   for( y = 0; y < ls->size; y++)
+      {
+      ls_mask at_least_one_bit_set = 0;
+      ls_mask at_least_two_bits_set = 0;
+      ls_mask solved = 0;
+      ls_mask found;
+
+      for( x = 0; x < ls->size; x++)
+         {
+         at_least_two_bits_set |= (at_least_one_bit_set & ls->xmask[x]);
+         at_least_one_bit_set |= ls->xmask[x];
+         solved |= ((ls_mask)1) << (ls->soln[x][y] - 1);
+         }
+      at_least_one_bit_set &= ls->ymask[y];
+      at_least_two_bits_set &= ls->ymask[y];
+      if( (~at_least_one_bit_set) & (~solved) & all_bits)
+         {
+//       printf( "Unsolvable in row %u: %lx, %lx\n",
+//                   y, solved, at_least_one_bit_set);
+         show_grid( ls, true);
+         return( -1);
+         }
+                  /* We're looking for numbers that haven't been found
+                     yet,  and which can only appear in one cell: */
+      found = ~solved & at_least_one_bit_set & ~at_least_two_bits_set;
+      if( found)
+         {
+         int i;
+
+         found &= found - 1;     /* this clears all but the lowest bit */
+         for( i = 0; i < ls->size; i++)
+            if( (found >> i) & 1)
+               {
+               *yloc = y;
+               for( x = 0; x < ls->size; x++)
+                  if( found & ls->xmask[x])
+                     {
+                     *xloc = x;
+//                   printf( "Only candidate in row at %u, %u is %u\n",
+//                            x, y, i + 1);
+//                   show_grid( ls, true);
+                     return( i + 1);
+                     }
+               assert( 1);    /* shouldn't get here */
+               }
+         assert( 2);    /* shouldn't get here,  either */
+         }
+      }
+   for( x = 0; x < ls->size; x++)
+      {
+      ls_mask at_least_one_bit_set = 0;
+      ls_mask at_least_two_bits_set = 0;
+      ls_mask solved = 0;
+      ls_mask found;
+
+      for( y = 0; y < ls->size; y++)
+         {
+         at_least_two_bits_set |= (at_least_one_bit_set & ls->ymask[y]);
+         at_least_one_bit_set |= ls->ymask[y];
+         solved |= ((ls_mask)1) << (ls->soln[x][y] - 1);
+         }
+      if( ~at_least_one_bit_set & ~solved & all_bits)
+         {
+//       printf( "Unsolvable in col %u: %lx, %lx\n",
+//                   x, solved, at_least_one_bit_set);
+         show_grid( ls, true);
+         return( -1);
+         }
+      at_least_one_bit_set &= ls->xmask[x];
+      at_least_two_bits_set &= ls->xmask[x];
+                  /* We're looking for numbers that haven't been found
+                     yet,  and which can only appear in one cell: */
+      found = ~solved & at_least_one_bit_set & ~at_least_two_bits_set;
+      if( found)
+         {
+         int i;
+
+         found &= found - 1;     /* this clears all but the lowest bit */
+         for( i = 0; i < ls->size; i++)
+            if( (found >> i) & 1)
+               {
+               *xloc = x;
+               for( y = 0; y < ls->size; y++)
+                  if( found & ls->ymask[y])
+                     {
+                     *yloc = y;
+//                   printf( "Only candidate in col at %u, %u is %u\n",
+//                            x, y, i + 1);
+//                   show_grid( ls, true);
+                     return( i + 1);
+                     }
+               assert( 3);    /* shouldn't get here */
+               }
+         assert( 4);    /* shouldn't get here,  either */
+         }
+      }
+   return( 0);
+}
+
+static void set_value( LATIN_SQUARE *ls, const unsigned x, const unsigned y,
+                  const unsigned value)
+{
+   const ls_mask mask = ~((ls_mask)1 << value);
+
+   ls->xmask[x] &= mask;
+   ls->ymask[y] &= mask;
+   ls->soln[x][y] = value + 1;
+}
+
+unsigned max_n_fails = 1000;
+unsigned n_fails = 0, n_tries = 0, n_solutions = 0;
+bool show_all_squares = false;
+
+#define UNSOLVABLE -1
+#define SOLUTION_FOUND -2
+#define MAXED_OUT_TRIES -3
+
+int solve_latin_square( LATIN_SQUARE *ls)
+{
+   unsigned x, y, best_x = 0, best_y = 0, best_count = 10000;
+   unsigned count, i;
+   unsigned *possibles = (unsigned *)alloca( ls->size * sizeof( unsigned));
+   ls_mask xsaved, ysaved;
+   bool single_candidate = false;
+
+   n_tries++;
+#if 1
+   i = look_for_single_candidates( ls, &best_x, &best_y);
+   if( i == -1)      /* can't solve this LS */
+      return( 0);
+   if( i)
+      {
+      possibles[0] = i - 1;
+      best_count = 1;
+      single_candidate = true;
+      }
+#endif
+   if( n_fails >= max_n_fails)         /* consider to be 'unsolvable' */
+      return( MAXED_OUT_TRIES);
+   for( x = 0; x < ls->size && best_count > 1; x++)
+      for( y = 0; y < ls->size; y++)
+         if( !ls->soln[x][y] && best_count > (count = count_bits( ls->xmask[x] & ls->ymask[y])))
+            {
+            best_count = count;
+            best_x = x;
+            best_y = y;
+            }
+   x = best_x;
+   y = best_y;
+// printf( "best count: %u at (%u, %u)\n", count, x, y);
+   if( !best_count)     /* we have a square that can't be solved */
+      {
+      n_fails++;
+      return( UNSOLVABLE);
+      }
+   if( best_count == 10000)      /* This square is solved */
+      {
+      if( show_all_squares)
+         {
+         show_grid( ls, false);
+         n_solutions++;
+         return( 0);
+         }
+      else
+         return( SOLUTION_FOUND);
+      }
+   if( !single_candidate)
+      {
+      ls_mask tval = ls->xmask[x] & ls->ymask[y];
+      unsigned j;
+
+      for( i = j = 0; tval; tval >>= 1, j++)
+         if( tval & 1)
+            possibles[i++] = j;
+      }
+                  /* should scramble 'possibles' here... */
+   for( i = best_count - 1; i; i--)
+      {
+      const unsigned tval = possibles[i];
+      const unsigned k = rand( ) % (i + 1);
+
+      possibles[i] = possibles[k];
+      possibles[k] = tval;
+      }
+   xsaved = ls->xmask[x];
+   ysaved = ls->ymask[y];
+   for( i = 0; i < best_count; i++)
+      {
+      int rval;
+
+      if( i)
+         {
+         ls->xmask[x] = xsaved;
+         ls->ymask[y] = ysaved;
+         }
+      set_value( ls, x, y, possibles[i]);
+      rval = solve_latin_square( ls);
+      if( rval == SOLUTION_FOUND || rval == MAXED_OUT_TRIES)
+         return( rval);
+      }
+   ls->xmask[x] = xsaved;
+   ls->ymask[y] = ysaved;
+   ls->soln[x][y] = 0;
+   return( 0);
+}
+
+int main( const int argc, const char **argv)
+{
+   const unsigned grid_size = atoi( argv[1]);
+   LATIN_SQUARE *ls = (LATIN_SQUARE *)malloc( sizeof( LATIN_SQUARE));
+   unsigned i;
+   bool show_mask = false;
+   int rval;
+
+   srand( time( NULL));
+   for( i = 2; i < argc; i++)
+      if( argv[i][0] == '-' && argv[i][1] == 's')
+         srand( atoi( argv[i] + 2));
+   for( i = 2; i < argc; i++)
+      if( argv[i][0] == '-')
+         switch( argv[i][1])
+            {
+            case 'r':             /* show a 'reduced' LS */
+               {
+               unsigned k;
+
+               for( k = 0; k < grid_size; k++)
+                  {
+                  set_value( ls, k, 0, k);
+                  set_value( ls, 0, k, k);
+                  }
+               }
+               break;
+            case 'm':
+               show_mask = true;
+               break;
+            case 'f':
+               max_n_fails = atoi( argv[i] + 2);
+               break;
+            case 'a':
+               show_all_squares = true;
+               break;
+            case 's':      /* handled above */
+               break;
+            default:
+               printf("'%s' ignored\n", argv[i]);
+               break;
+            }
+   do
+      {
+      init_grid( ls, grid_size);
+      n_fails = n_tries = n_solutions = 0;
+      rval = solve_latin_square( ls);
+      if( rval == MAXED_OUT_TRIES)
+         printf( "Maxed out\n");
+      }
+      while( rval == MAXED_OUT_TRIES);
+   if( !show_all_squares)
+      show_grid( ls, show_mask);
+   else
+      printf( "%u solutions found\n", n_solutions);
+   printf( "%u tries; %u fails\n", n_tries, n_fails);
+   return( 0);
+}
+
+/*
+1 2 3 4 5 6 7
+3 1 4 7 6 2 5
+5 3 2 1 7 4 6
+2 4 7 6 3 5 1
+4 5 6 2 1 7 3
+6 7 5 3 4 1 2
+7 6 1 5 2 3 4 */

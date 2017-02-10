@@ -1,0 +1,73 @@
+/* ***************************************************************************** */
+/* Copyright:      Francois Panneton and Pierre L'Ecuyer, University of Montreal */
+/*                 Makoto Matsumoto, Hiroshima University                        */
+/* Notice:         This code can be used freely for personal, academic,          */
+/*                 or non-commercial purposes. For commercial purposes,          */
+/*                 please contact P. L'Ecuyer at: lecuyer@iro.UMontreal.ca       */
+/* ***************************************************************************** */
+
+#define W 32
+#define R 16
+#define P 0
+#define M1 13
+#define M2 9
+#define M3 5
+
+#define MAT0POS(t,v) (v^(v>>t))
+#define MAT0NEG(t,v) (v^(v<<(-(t))))
+#define MAT3NEG(t,v) (v<<(-(t)))
+#define MAT4NEG(t,b,v) (v ^ ((v<<(-(t))) & b))
+
+#define V0            STATE[state_i                   ]
+#define VM1           STATE[(state_i+M1) & 0x0000000fU]
+#define VM2           STATE[(state_i+M2) & 0x0000000fU]
+#define VM3           STATE[(state_i+M3) & 0x0000000fU]
+#define VRm1          STATE[(state_i+15) & 0x0000000fU]
+#define VRm2          STATE[(state_i+14) & 0x0000000fU]
+#define newV0         STATE[(state_i+15) & 0x0000000fU]
+#define newV1         STATE[state_i                 ]
+#define newVRm1       STATE[(state_i+14) & 0x0000000fU]
+
+#define FACT 2.32830643653869628906e-10
+
+static unsigned int state_i = 0;
+static unsigned int STATE[R];
+
+void InitWELLRNG512a (unsigned int *init){
+   int j;
+   state_i = 0;
+   for (j = 0; j < R; j++)
+     STATE[j] = init[j];
+}
+
+unsigned int WELLRNG512a (void){
+  unsigned int z1, z2, tval;
+  unsigned int a, c;
+
+  a = STATE[state_i];
+  c = STATE[(state_i + 13) & 0xf];
+  z1    = a ^ (a << 16) ^ c ^ (c << 15);
+  a = STATE[(state_i + 9) & 0xf];
+  z2 = a ^ (a >> 11);
+  tval = STATE[state_i] = z1 ^ z2;
+  state_i = (state_i + 15) & 0xfU;
+  STATE[state_i] ^= (STATE[state_i] << 2) ^ (z1 << 18) ^ z2
+                       ^ (z2 << 28) ^ ((tval << 5) & 0xda442d24U);
+  return (STATE[state_i]);
+}
+
+#include <stdio.h>
+
+int main( const int argc, const char **argv)
+{
+   int i, n_to_show = 160;
+   unsigned int init[16] = { 31415926, 53589793, 23846264, 12345678, 5, 6,
+                               7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+
+   InitWELLRNG512a( init);
+   for( i = 0; i < n_to_show; i++)
+      printf( "%08x%s", WELLRNG512a( ),
+                  (i % 8 == 7 ? "\n" : " "));
+   return( 0);
+}
+

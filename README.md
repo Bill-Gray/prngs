@@ -1,11 +1,16 @@
 # prngs
 Assorted pseudo-random number (PRN) generators.  I mostly just use the
-Mersenne Twister 64-bit variation,  simply because MT has been very
-thoroughly tested by a lot of people and its weaknesses are known.
-Determining where a PRNG is 'bad' is rather difficult;  I have no
-good reason not to just use one that has been extensively investigated.
-If MT has problems,  a _lot_ of scientific papers relying on it will
-have to be investigated.
+Mersenne Twister 64-bit variation,  simply because MT-64 has been very
+thoroughly tested by a lot of people and its weaknesses are known
+(essentially,  it doesn't have any known biases).  Determining where a
+PRNG is 'bad' is quite difficult;  as with cryptographic algorithms,
+you probably shouldn't trust _any_ PRNG unless it has been completely
+examined and no biases found. If MT-64 has problems,  a _lot_ of
+scientific papers relying on it will have to be investigated.
+
+However,  I've played around with some other PRNGs,  just out of curiosity,
+and most of the resulting code is here.  With the possible exception of
+the WELL algorithms,  or for use in a game,  I wouldn't use any of them.
 
 Among other toys,  this has code to :
 

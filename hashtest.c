@@ -91,7 +91,7 @@ int hashword_compare( const void *a, const void *b)
 
 int main( const int argc, const char **argv)
 {
-   unsigned i;
+   unsigned i, n_delays = 0;
    clock_t t0;
    FILE *ifile = fopen( "american-english-insane", "rb");
 
@@ -101,6 +101,9 @@ int main( const int argc, const char **argv)
             {
             case 's':
                shift_amt = atoi( argv[i] + 2);
+               break;
+            case 'd':
+               n_delays = (unsigned)atoi( argv[i] + 2);
                break;
             }
 
@@ -137,6 +140,8 @@ int main( const int argc, const char **argv)
              printf( "%08x: \"%s\" \"%s\"\n", words[i].hash, words[i - 1].text, words[i].text);
              }
       printf( "%u collisions found\n", n_collisions);
+      printf( "Roughly %.0f collisions expected if the hash were 'perfect'\n",
+                  (double)n_words * (double)n_words / (2. * 65536. * 65536.));
       }
 
    t0 = clock( );
@@ -144,6 +149,15 @@ int main( const int argc, const char **argv)
       test_bit_flipping( i);
    t0 = clock( ) - t0;
    printf( "%.3f seconds\n", (double)t0 / (double)CLOCKS_PER_SEC);
+   if( n_delays)
+      {
+      t0 = clock( );
+      for( i = n_delays; i; i--)
+         SuperFastHash( (const char *)&i, sizeof( i));
+      t0 = clock( ) - t0;
+      printf( "%u hashes in %.3f seconds\n", n_delays,
+                    (double)t0 / (double)CLOCKS_PER_SEC);
+      }
    return( 0);
 }
 

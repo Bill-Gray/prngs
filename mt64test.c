@@ -36,9 +36,18 @@ int main( const int argc, const char **argv)
       printf( "Last value passes test\n");
     if( delays)
        {
-       clock_t t0 = clock( );
-       for( i = delays; i; i--)
-          mt64_double( mt);
+       clock_t t0;
+
+       printf( "Computing %d ", delays);
+       printf( argc == 2 ? "64-bit randoms\n"
+               : "64-bit floating-point randoms\n");
+       t0 = clock( );
+       if( argc == 2)
+          for( i = delays; i; i--)
+             mt64( mt);
+       else
+          for( i = delays; i; i--)
+             mt64_double( mt);
        printf( "%.2f seconds elapsed\n",
                   (double)(clock( ) - t0) / (double)CLOCKS_PER_SEC);
        }

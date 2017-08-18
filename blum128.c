@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <time.h>
 
 /* See 'blum.c' for a description of this code.  Basically,
 it allows one to compute Blum Blum Shub pseudorandom numbers
@@ -49,16 +50,21 @@ int main( const int argc, const char **argv)
    for( i = 0; i < 100; i++)
       {
       x = get_bbs_pseudorandom( x, &random_value);
-      printf( "%17" PRIx64, random_value);
+      printf( " %016" PRIx64, random_value);
       if( i % 4 == 3)
          printf( "\n");
       }
    if( argc > 1)
       {
-      i = (unsigned)atoi( argv[1]);
-      while( i--)
+      clock_t t0 = clock( );
+      const unsigned n_randoms = (unsigned)atoi( argv[1]);
+
+      for( i = n_randoms; i; i--)
          x = get_bbs_pseudorandom( x, &random_value);
-      printf( "%17" PRIx64, (uint64_t)x);
+      t0 = clock( ) - t0;
+      printf( "%u 64-bit random ints in %.3f seconds\n", n_randoms,
+                  (double)t0 / (double)CLOCKS_PER_SEC);
+      printf( "\n%016" PRIx64 "\n", (uint64_t)x);
       }
    return( 0);
 }

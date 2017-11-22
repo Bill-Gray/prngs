@@ -10,17 +10,10 @@ unsigned find_factors( uint64_t *factors, uint64_t ival,
 
 uint64_t gcd( uint64_t a, uint64_t b)
 {
-   uint64_t tval;
-
-   if( a < b)
-      {
-      tval = a;
-      a = b;
-      b = tval;
-      }
    while( b)
       {
-      tval = a % b;
+      const uint64_t tval = a % b;
+
       a = b;
       b = tval;
       }

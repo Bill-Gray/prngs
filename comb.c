@@ -15,7 +15,7 @@ unsigned find_factors( uint64_t *factors, uint64_t ival,
 static void show_factors( const uint64_t ival)
 {
    uint64_t factors[64];
-   uint n_factors, i;
+   unsigned n_factors, i;
 
    printf( "%lu = ", ival);
    n_factors = find_factors( factors, ival, 64);
@@ -70,7 +70,7 @@ int main( const int argc, const char **argv)
       }
    for( i = 0; i < n_filled; i++)
       array[i] = (uint64_t)atol( argv[i + 1]);
-   while( (int64_t)array[n_filled - 1] > 0)
+   while( (int64_t)array[n_filled - 1] > 1)
       {
       int count, got_it;
       uint64_t zval;

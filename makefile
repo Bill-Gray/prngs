@@ -83,7 +83,7 @@ monty$(EXE): monty.c mt64.o
 	$(CC) $(CFLAGS) -o monty monty.c mt64.o -lm
 
 mt64.o: mt64.c
-	g++ $(CFLAGS) -c mt64.c
+	$(CC) $(CFLAGS) -c mt64.c
 
 mt64test$(EXE): mt64test.c mt64.o
 	$(CC) $(CFLAGS) -o mt64test mt64test.c mt64.o

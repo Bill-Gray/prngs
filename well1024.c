@@ -174,3 +174,37 @@ double wellrng1024_d( uint32_t *state)
 #endif
 }
 
+/* Similar trickery can be done with long doubles.  This is even
+less portable.  On my Intel(R) machine,  GCC and Clang treat a long
+double as a 16-byte entity,  with six bytes left as zeroes.  However,
+'long doubles' can be 12 bytes with two bytes of padding,  or ten
+bytes with no padding.  Or a 'long double' can just be a double (this
+is how Microsoft Visual C++ (TM) handles it).  A long double can just
+be two doubles (the "double-double" method);  PowerPC has used this.
+Or it can be a 128-bit quad-precision value (GCC's __float128 type).
+
+   Your mother might cry at the above function.  The following code
+might cause her to disown you.  You've been warned.      */
+
+long double wellrng1024_ld( uint32_t *state)
+{
+#ifdef CONVENTIONAL_WAY
+   const double two_to_the_minus_64 =
+                1. / (65536. * 65536. * 65536. * 65536.);
+
+   return( (double)wellrng1024_64( state) * two_to_the_minus_64);
+#else
+   const uint64_t mask = UINT64_C( 0x8000000000000000);
+   const uint64_t exponent_and_zeroes = UINT64_C( 0x03fff);
+   uint64_t array[2];
+
+   array[0] = mask | wellrng1024_64( state);
+   array[1] = exponent_and_zeroes;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+   return( *((long double *)array) - 1.L);
+#pragma GCC diagnostic pop
+#endif
+}
+

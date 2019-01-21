@@ -17,6 +17,27 @@ uint32_t pcg32_random_r( pcg32_random_t* rng)
     return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }
 
+uint64_t pcg32_random_r_64( pcg32_random_t* rng)
+{
+    uint32_t xorshifted = ((rng->state >> 18u) ^ rng->state) >> 27u;
+    uint32_t rot = rng->state >> 59u;
+    const uint64_t multiplier = 6364136223846793005ULL;
+    uint64_t rval;
+
+    /* Advance internal state                                         */
+    rng->state = rng->state * multiplier + (rng->inc | 1);
+    /* Calculate output function (XSH RR), uses old state for max ILP */
+    rval = ((uint64_t)xorshifted << (32 - rot)) | ((uint64_t)xorshifted << (32 | ((-rot) & 31)));
+    rval &= ~((uint64_t)0xffffffff);
+    /* Advance internal state                                         */
+    xorshifted = ((rng->state >> 18u) ^ rng->state) >> 27u;
+    rot = rng->state >> 59u;
+    rng->state = rng->state * multiplier + (rng->inc | 1);
+    /* Calculate output function (XSH RR), uses old state for max ILP */
+    rval |= (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+    return( rval);
+}
+
 uint32_t pcg32_random_rev_r( pcg32_random_t* rng)
 {
     uint32_t xorshifted, rot;
@@ -70,5 +91,8 @@ int main( const int argc, const char **argv)
    printf( "\nRunning backward :\n");
    for( i = 0; i < 160; i++)
       printf( "%08x %s", pcg32_random_rev_r( &rng), (i % 8 == 7) ? "\n" : "");
+   printf( "\n64-bit version :\n");
+   for( i = 0; i < 80; i++)
+      printf( "%016lx %s", pcg32_random_r_64(  &rng), (i % 4 == 3) ? "\n" : "");
    return( 0);
 }

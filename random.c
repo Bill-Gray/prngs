@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 
 static void show_poolsize( void)
@@ -21,14 +22,22 @@ static void show_poolsize( void)
    fclose( ifile);
 }
 
+static const char *digits =
+   "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+   "+/!\"#$%&'()*,-.:;<=>?@[\\]^_`{|}";
+
 int main( const int argc, const char **argv)
 {
 
    FILE *ifile;
    const char *ifilename = "/dev/random";
    unsigned i, j;
-   unsigned count = 30, n_lines = 10;
+   unsigned count = 64, n_lines = 10;
+   unsigned radix = 16;   /* default to hex output */
+   unsigned x = 0, mod = 1;
+   unsigned bytes_read = 0;
 
+   setbuf( stdout, NULL);
    for( i = 1; i < (unsigned)argc; i++)
       if( argv[i][0] == '-')
          switch( argv[i][1])
@@ -40,23 +49,46 @@ int main( const int argc, const char **argv)
                ifilename = "/dev/urandom";
                break;
             default:
-               printf( "Unrecognized option '%s'\n", argv[i]);
+               if( atoi( argv[i] + 1))
+                  radix = (unsigned)atoi( argv[i] + 1);
+               else
+                  printf( "Unrecognized option '%s'\n", argv[i]);
                break;
             }
    show_poolsize( );
    ifile = fopen( ifilename, "rb");
    assert( ifile);
+   assert( radix <= strlen( digits));
    for( i = 0; i < n_lines; i++)
       {
-      for( j = 0; j < count; j++)
+      j = 0;
+      while( j < count)
          {
          const int c = fgetc( ifile);
 
+         mod *= 256;
+         x += (unsigned)c;
+         bytes_read++;
          assert( c != EOF);
-         printf( "%02x", (unsigned)c);
+         assert( c >=0 && c <= 256);
+         while( j < count)
+            if( x / radix < mod / radix)
+               {
+               printf( "%c", digits[x % radix]);
+               mod /= radix;
+               x /= radix;
+               j++;
+               }
+            else
+               {
+               x %= radix;
+               mod %= radix;
+               break;
+               }
          }
       printf( "\n");
       }
    show_poolsize( );
+   printf( "%u random bytes read\n", bytes_read);
    return( 0);
 }

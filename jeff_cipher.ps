@@ -1,0 +1,125 @@
+%!PS-Adobe-2.0
+%%Pages:   20
+%%BoundingBox: 27 30 585 747
+%%Creator: BJG
+%%Copyright: none
+%%Title: Jefferson Cipher Wheel labels
+%%Version: none
+%%DocumentData: Clean7Bit
+%%PageOrder: Ascend
+%%Orientation: Portrait
+%%EndComments
+%%BeginDefaults
+%%PageResources: font Times-Roman
+%%EndDefaults
+
+/font_height 40 def
+/n_disks 16 def
+/n_entries 13 def
+
+% See 'jeff.c' for details.  This file is read by 'jeff' to provide
+% the header for a PostScript file for labels to be used in making
+% a Jefferson cipher wheel.
+
+% Define the value of Pi.  This makes the code easier to read,  and
+% simplifies updates should the value of Pi change.
+
+/pi 3.1415926535897932384626433832795028841971693993751058209749445923 def
+
+% DVDs have a 12-cm diameter.  Multiply by pi and 0.396 to get
+% circumference in inches,  by 72 to get it in points.  Divide
+% by 26 to get the points per letter.
+
+/ystep 12 pi mul 0.396 mul 72 mul 26 div def
+
+% The 'wheels' are about 1.1 cm thick.  Similar math :
+
+/xstep 1.1 0.396 mul 72 mul def
+
+% The text is suitably centered vertically if we bump it up by
+% four points (1/18 inch).
+
+/text_yoffset 4 def
+
+/centershow
+{ dup stringwidth pop
+ 0 exch sub
+ 2 div
+ text_yoffset rmoveto show } def
+
+/concatstrings % (a) (b) -> (ab)
+  { exch dup length
+    2 index length add string
+    dup dup 4 2 roll copy length
+    4 -1 roll putinterval
+  } bind def
+
+/put_label   % letter a or b on stack
+{
+   /letter exch def
+   x y 15 add moveto
+   stripnum 40 idiv 1 add nstr cvs  centershow
+   x y moveto
+   stripnum 40  mod 1 add nstr cvs letter concatstrings centershow
+   /x x xstep  add def
+} def
+
+/label_strips
+{
+/x xoff  def
+/y yoff n_entries 2 add ystep mul add def
+/y 650 def
+/nstr 7 string def
+1 1 8
+   {
+   pop      % not using the loop variable
+   (a) put_label
+   (b) put_label
+   /stripnum stripnum 1 add def
+   } for
+} def
+
+/show_disk
+{
+0 1 n_entries 1 sub
+   {
+      ystep mul yoff add 2 add
+      xoff exch moveto centershow
+   } for
+stroke
+xoff xstep .5 mul sub yoff moveto   % line to left side
+0 n_entries ystep mul rlineto
+/xoff xoff xstep add def
+xoff xstep .5 mul sub yoff moveto   % line on right side
+0 n_entries ystep mul rlineto
+} def
+
+/show_horizontal_lines
+{
+0 1 n_entries
+   {
+      ystep mul yoff add
+      xoff xstep .5 mul sub exch moveto
+      xstep n_disks mul 0 rlineto
+   } for
+}  def
+
+/init_page        % page number on stack
+{
+   1 sub 8 mul /stripnum exch def
+   /xoff 80 def
+   /yoff 100 def
+
+   /Times-Roman findfont 14          scalefont setfont
+   100 685 moveto (Jefferson Cipher Wheel Strips) show
+   380 685 moveto (PRNG seed: ) show
+   (seed) show
+   100  82 moveto (See https://www.github.com/Bill-Gray/prngs/jeff.c) show
+   /Times-Roman findfont 12          scalefont setfont
+   label_strips
+   /Times-Roman findfont font_height scalefont setfont
+   show_horizontal_lines
+} def
+
+(A) (B) (C) (D)
+   (rest is filled automatically;  see jeff.c)

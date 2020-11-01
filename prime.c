@@ -20,17 +20,17 @@ uint64_t atouint64_t( const char *ival)
 
 int main( const int argc, const char **argv)
 {
-   uint64_t start = atouint64_t( argv[1]);
-   unsigned array_len = (unsigned)atoi( argv[2]);
+   uint64_t start = (argc > 1 ? atouint64_t( argv[1]) : 0);
+   unsigned array_len = (argc > 2 ? (unsigned)atoi( argv[2]) : 1);
    uint32_t *factors = (uint32_t *)calloc( array_len, sizeof( uint32_t));
    uint32_t *half_factors = (uint32_t *)calloc( array_len / 2, sizeof( uint32_t));
    uint32_t *quarter_factors = (uint32_t *)calloc( array_len / 4, sizeof( uint32_t));
    unsigned i, j;
    const unsigned n_per_line = 3;
 
-   if( argc < 3)
+   if( argc < 3 || start <= 0 || array_len <= 1)
       {
-      printf( "Need a starting (odd) number and a number of values\n");
+      printf( "Need a starting number and a number of values\n");
       return( -1);
       }
    find_primes( factors, start, array_len);

@@ -26,22 +26,27 @@ int main( const int argc, const char **argv)
    uint32_t *half_factors = (uint32_t *)calloc( array_len / 2, sizeof( uint32_t));
    uint32_t *quarter_factors = (uint32_t *)calloc( array_len / 4, sizeof( uint32_t));
    unsigned i, j;
-   const unsigned n_per_line = 3;
+   int n_digits;
+   uint64_t tval = start + array_len - 1;
+   unsigned n_per_line;
 
    if( argc < 3 || start <= 0 || array_len <= 1)
       {
       printf( "Need a starting number and a number of values\n");
       return( -1);
       }
+   for( n_digits = 0; tval; tval /= 10)
+      n_digits++;
+   n_per_line = 80 / (int)( n_digits + 1);
    find_primes( factors, start, array_len);
    for( i = 0; i < array_len && i < 10000; i++)
-      printf( "%20" PRIu64 "  %u\n", (uint64_t)i + start, factors[i]);
+      printf( "%*" PRIu64 "  %u\n", n_digits, (uint64_t)i + start, factors[i]);
    printf( "\nPrimes are:\n");
    for( i = j = 0; j < 10000 && i < array_len; i++)
       if( !factors[i])
          {
          j++;
-         printf( "%20" PRIu64 "%s", (uint64_t)i + start,
+         printf( "%*" PRIu64 "%s", n_digits, (uint64_t)i + start,
                      (j % n_per_line) ? " " : "\n");
          }
    printf( "\n");
@@ -52,18 +57,19 @@ int main( const int argc, const char **argv)
       if( !factors[i] && !half_factors[i / 2])
          {
          j++;
-         printf( "%20" PRIu64 "%s", (uint64_t)i + start,
+         printf( "%*" PRIu64 "%s", n_digits, (uint64_t)i + start,
                      (j % n_per_line) ? " " : "\n");
          }
    printf( "\n");
 
    find_primes( quarter_factors, start / 4, array_len / 4);
+   n_per_line = 80 / (int)( n_digits + 2);
    printf( "\n2-Safe primes (p, (p-1)/2, (p-3)/4 are all prime); p %% 16 == 7 cases *ed, are:\n");
    for( i = j = 0; i < array_len; i++)
       if( !factors[i] && !half_factors[i / 2] && !quarter_factors[i / 4])
          {
          j++;
-         printf( "%20" PRIu64 "%c%s", (uint64_t)i + start,
+         printf( "%*" PRIu64 "%c%s", n_digits, (uint64_t)i + start,
                      (i + start) % 16 == 7 ? '*' : ' ',
                      (j % n_per_line) ? " " : "\n");
          }

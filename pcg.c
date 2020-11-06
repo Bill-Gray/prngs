@@ -7,8 +7,8 @@ typedef struct { uint64_t state;  uint64_t inc; } pcg32_random_t;
 
 uint32_t pcg32_random_r( pcg32_random_t* rng)
 {
-    const uint32_t xorshifted = ((rng->state >> 18u) ^ rng->state) >> 27u;
-    const uint32_t rot = rng->state >> 59u;
+    const uint32_t xorshifted = (uint32_t)( ((rng->state >> 18u) ^ rng->state) >> 27u);
+    const int rot = (int)( rng->state >> 59u);
     const uint64_t multiplier = 6364136223846793005ULL;
 
     /* Advance internal state                                         */
@@ -19,8 +19,8 @@ uint32_t pcg32_random_r( pcg32_random_t* rng)
 
 uint64_t pcg32_random_r_64( pcg32_random_t* rng)
 {
-    uint32_t xorshifted = ((rng->state >> 18u) ^ rng->state) >> 27u;
-    uint32_t rot = rng->state >> 59u;
+    uint32_t xorshifted = (uint32_t)( ((rng->state >> 18u) ^ rng->state) >> 27u);
+    int rot = (int)( rng->state >> 59u);
     const uint64_t multiplier = 6364136223846793005ULL;
     uint64_t rval;
 
@@ -30,8 +30,8 @@ uint64_t pcg32_random_r_64( pcg32_random_t* rng)
     rval = ((uint64_t)xorshifted << (32 - rot)) | ((uint64_t)xorshifted << (32 | ((-rot) & 31)));
     rval &= ~((uint64_t)0xffffffff);
     /* Advance internal state                                         */
-    xorshifted = ((rng->state >> 18u) ^ rng->state) >> 27u;
-    rot = rng->state >> 59u;
+    xorshifted = (uint32_t)( ((rng->state >> 18u) ^ rng->state) >> 27u);
+    rot = (int)( rng->state >> 59u);
     rng->state = rng->state * multiplier + (rng->inc | 1);
     /* Calculate output function (XSH RR), uses old state for max ILP */
     rval |= (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
